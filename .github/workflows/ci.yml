@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Syntax and dry-run smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 22
+      - name: JavaScript syntax
+        run: for f in server.mjs missions/*.mjs scripts/*.mjs; do node --check "$f"; done
+      - name: Shell syntax
+        run: for f in recette/*.sh scripts/*.sh git-hooks/* scripts/tma-sql scripts/tma-php-lint scripts/tma-browse; do sh -n "$f"; done
+      - name: repos.json
+        run: node -e "JSON.parse(require('fs').readFileSync('repos.json', 'utf8'))"
+      - name: Smoke test (DRY_RUN, signed webhooks, routing)
+        run: sh scripts/smoke-test.sh
+
+  image:
+    name: Docker image builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - run: docker build -t tma-auto:ci .

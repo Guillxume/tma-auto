@@ -1,0 +1,4 @@
+#!/bin/sh
+# Outil navigateur de l'agent d'audit (mission audit-rgaa), sur la recette uniquement.
+# Usage : tma-browse scan|shot|tab|run|eval <page> … (voir scripts/tma-browse.mjs)
+exec node /app/scripts/tma-browse.mjs "$@"

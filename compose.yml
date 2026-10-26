@@ -1,0 +1,86 @@
+services:
+  tma-auto:
+    build: .
+    container_name: tma-auto
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      HOST: 0.0.0.0
+      REPOS_FILE: /app/repos.json
+      WORKTREES_DIR: /data/worktrees
+      LOGS_DIR: /data/logs
+      STATE_DIR: /data/state
+      KNOWLEDGE_DIR: /data/tma-knowledge
+      ATELIER_DIR: /data/atelier-plaque
+    volumes:
+      - ./repos.json:/app/repos.json:ro
+      # ~/.claude.json (serveurs MCP), ~/.claude, ~/.gitconfig, ~/.git-credentials, ~/.npmrc
+      - tma-home:/home/node
+      # dépôts clonés, base de connaissance, worktrees, journal en attente, transcripts
+      - tma-data:/data
+    # Deux réseaux : traefik-network pour recevoir les webhooks (aucun port publié), et un réseau
+    # propre, prioritaire pour la route par défaut, pour sortir vers Linear, GitHub, Anthropic,
+    # Slack et npm : sur tma-server, traefik-network n'a pas d'accès à Internet.
+    networks:
+      default:
+        gw_priority: 1
+      traefik: {}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-network
+      - traefik.http.routers.tma-auto-secure.entrypoints=https
+      - traefik.http.routers.tma-auto-secure.rule=Host(`${TMA_HOST}`) && (Path(`/webhooks/linear`) || Path(`/webhooks/github`) || Path(`/dashboard`) || PathPrefix(`/audits/`))
+      - traefik.http.routers.tma-auto-secure.tls=true
+      - traefik.http.routers.tma-auto-secure.tls.certresolver=le
+      - traefik.http.routers.tma-auto-secure.middlewares=tma-auto-ratelimit
+      - traefik.http.middlewares.tma-auto-ratelimit.ratelimit.average=10
+      - traefik.http.middlewares.tma-auto-ratelimit.ratelimit.burst=20
+      - traefik.http.services.tma-auto.loadbalancer.server.port=8787
+    # Logs Docker plafonnés : 3 fichiers de 10 Mo (le disque de tma-server est serré).
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # tma-server sert aussi des boutiques en production (4 CPU, 7 Go) : l'agent ne doit jamais
+    # les priver de ressources. À relever seulement si un build Next.js / Medusa manque de mémoire.
+    mem_limit: ${TMA_MEM_LIMIT:-3g}
+    cpus: ${TMA_CPUS:-1.5}
+
+  # Tunnels SSH vers les bases de RECETTE (staging-1, staging-2) par le réseau privé
+  # 10.0.0.0/24. tma-auto joint chaque base sur tma-tunnel:<port> (recette/targets.conf).
+  # La clé ~/.ssh/tma_tunnel n'autorise côté recette que ces redirections, sans shell.
+  tma-tunnel:
+    image: alpine:3.20
+    container_name: tma-tunnel
+    restart: unless-stopped
+    command: ["sh", "/tunnel/tunnel.sh"]
+    volumes:
+      - ./recette/tunnel.sh:/tunnel/tunnel.sh:ro
+      - ./recette/targets.conf:/tunnel/targets.conf:ro
+      - ${HOME}/.ssh/tma_tunnel:/tunnel/key:ro
+      - ${HOME}/.ssh/tma_tunnel_known_hosts:/tunnel/known_hosts:ro
+    networks:
+      - default
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 64m
+    logging:
+      driver: json-file
+      options:
+        max-size: 1m
+        max-file: "2"
+
+volumes:
+  tma-home:
+  tma-data:
+
+networks:
+  default:
+  traefik:
+    external: true
+    name: traefik-network

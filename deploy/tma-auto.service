@@ -1,0 +1,31 @@
+[Unit]
+Description=Webhook Linear -> Claude Code (TMA auto)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tma
+Group=tma
+WorkingDirectory=/home/tma/tma-auto
+EnvironmentFile=/home/tma/tma-auto/.env
+# systemd ne charge pas NVM : on donne les chemins absolus de Node v22.19.0
+Environment=PATH=/home/tma/.nvm/versions/node/v22.19.0/bin:/home/tma/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=HOME=/home/tma
+ExecStart=/home/tma/.nvm/versions/node/v22.19.0/bin/node /home/tma/tma-auto/server.mjs
+Restart=on-failure
+RestartSec=5
+
+# Durcissement
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/home/tma
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

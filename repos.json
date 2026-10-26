@@ -1,0 +1,153 @@
+{
+  "repos": {
+    "acme/acme-shop": {
+      "path": "/data/repos/acme-shop",
+      "kind": "prestashop",
+      "php": [
+        "7.4"
+      ],
+      "buildCommand": "tma-php-lint",
+      "notes": "PrestaShop 1.7.3.1, la plus ancienne boutique du parc. Pas de CLAUDE.md : appuie-toi sur le skill prestashop et le journal.",
+      "dbPrefix": "ps_",
+      "db": "DB_URL_ACME_SHOP",
+      "recette": {
+        "host": "10.0.0.7",
+        "container": "acme-shop-db"
+      },
+      "recetteDeploy": {
+        "host": "10.0.0.7",
+        "site": "acme-shop",
+        "url": "https://recette.acme.example"
+      },
+      "prodUrl": "https://www.acme.example"
+    },
+    "acme/globex": {
+      "path": "/data/repos/globex",
+      "kind": "prestashop",
+      "php": [
+        "8.1"
+      ],
+      "buildCommand": "tma-php-lint",
+      "dbPrefix": "ps_",
+      "db": "DB_URL_GLOBEX",
+      "recette": {
+        "host": "10.0.0.3",
+        "container": "globex-db"
+      },
+      "siblings": [
+        "acme/globex-pt"
+      ],
+      "recetteDeploy": {
+        "host": "10.0.0.3",
+        "site": "globex",
+        "url": "https://recette.globex.example"
+      },
+      "prodUrl": "https://www.globex.example"
+    },
+    "acme/globex-pt": {
+      "path": "/data/repos/globex-pt",
+      "kind": "prestashop",
+      "php": [
+        "8.1"
+      ],
+      "buildCommand": "tma-php-lint",
+      "notes": "Version portugaise de globex. Stack PrestaShop Docker : seuls les thèmes, modules et l'infra sont versionnés, pas le cœur.",
+      "dbPrefix": "ps_",
+      "db": "DB_URL_GLOBEX_PT",
+      "recette": {
+        "host": "10.0.0.3",
+        "container": "globex-pt-db"
+      },
+      "siblings": [
+        "acme/globex"
+      ],
+      "recetteDeploy": {
+        "host": "10.0.0.3",
+        "site": "globex-pt",
+        "url": "https://recette.globex.example.pt"
+      },
+      "prodUrl": "https://www.globex.example.pt"
+    },
+    "acme/northwind": {
+      "path": "/data/repos/northwind",
+      "kind": "prestashop",
+      "php": [
+        "7.4"
+      ],
+      "buildCommand": "tma-php-lint",
+      "dbPrefix": "ps_",
+      "db": "DB_URL_NORTHWIND",
+      "recette": {
+        "host": "10.0.0.7",
+        "container": "northwind-db"
+      },
+      "recetteDeploy": {
+        "host": "10.0.0.7",
+        "site": "northwind",
+        "url": "https://recette.northwind.example"
+      },
+      "prodUrl": "https://www.northwind.example"
+    },
+    "acme/acmereviews": {
+      "path": "/data/repos/acmereviews",
+      "kind": "prestashop",
+      "php": [
+        "7.4",
+        "8.1"
+      ],
+      "buildCommand": "tma-php-lint",
+      "notes": "Dépôt d'un module PrestaShop autonome, installé sur plusieurs boutiques : reste compatible avec toutes les versions PHP listées."
+    },
+    "acme/internal-ui": {
+      "path": "/data/repos/internal-ui",
+      "kind": "outils-internes",
+      "node": "22",
+      "buildCommand": "pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint && pnpm test && pnpm build",
+      "notes": "Ce dépôt EST le design system : toute modification impacte acme-pim et les autres outils. Ajoute un changeset (pnpm changeset) si le comportement publié change."
+    },
+    "acme/acme-pim": {
+      "path": "/data/repos/acme-pim",
+      "kind": "outils-internes",
+      "node": "24",
+      "baseBranch": "develop",
+      "buildCommand": "pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+      "notes": "Jamais de suite « live » (test:rls, test:e2e) : elles écrivent en base."
+    },
+    "acme/datasheet-studio": {
+      "path": "/data/repos/datasheet-studio",
+      "kind": "outils-internes",
+      "buildCommand": "npm ci && npm run check && npm run build",
+      "env": {
+        "HUSKY": "0"
+      },
+      "notes": "Tests d'intégration et E2E non exécutables ici (pas de base ni de navigateur) : la CI GitHub les rejoue sur la PR.",
+      "plaque": true
+    }
+  },
+  "labels": {
+    "acme": "acme/acme-shop",
+    "globex": "acme/globex",
+    "globex.pt": "acme/globex-pt",
+    "northwind": "acme/northwind"
+  },
+  "projects": {
+    "Shared Design System (@acme/internal-ui)": "acme/internal-ui",
+    "PIM": "acme/acme-pim",
+    "Corrections SEO Globex": "acme/globex"
+  },
+  "teams": {
+    "PIM": "acme/acme-pim"
+  },
+  "linearStates": {
+    "ECOM": {
+      "working": "In Progress",
+      "review": "Testing",
+      "waiting": "Demande d'informations"
+    },
+    "PIM": {
+      "working": "In Progress",
+      "review": "In Review",
+      "waiting": "Blocked"
+    }
+  }
+}

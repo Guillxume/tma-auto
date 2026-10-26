@@ -1,0 +1,19 @@
+#!/bin/sh
+# Lecture de la base du site pour l'agent. Usage : tma-sql "SELECT …"
+# La vraie protection est l'utilisateur MySQL tma_ro (SELECT seul, tables de contenu seules) ;
+# ce script ajoute une session en lecture seule et une limite de lignes.
+set -eu
+q="$*"
+if [ -z "${TMA_DB_HOST:-}" ]; then
+  echo "tma-sql : aucune base n'est configurée pour ce dépôt (champ db de repos.json)." >&2
+  exit 1
+fi
+first=$(printf '%s' "$q" | sed -E 's/^[[:space:](]+//' | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')
+case "$first" in
+  SELECT|SHOW|DESCRIBE|DESC|EXPLAIN|WITH) ;;
+  *) echo "tma-sql : lecture seule (SELECT, SHOW, DESCRIBE, EXPLAIN)." >&2; exit 1 ;;
+esac
+exec mariadb --host="$TMA_DB_HOST" --port="${TMA_DB_PORT:-3306}" --user="$TMA_DB_USER" \
+  --database="$TMA_DB_NAME" --batch --connect-timeout=10 \
+  --safe-updates --select-limit="${TMA_SQL_LIMIT:-200}" \
+  --init-command="SET SESSION TRANSACTION READ ONLY" -e "$q"

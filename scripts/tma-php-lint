@@ -1,0 +1,30 @@
+#!/bin/sh
+# Lint des fichiers PHP modifiés par rapport à la branche de base, avec chaque version PHP de prod.
+# Usage : tma-php-lint [version...]   (défaut : $TMA_PHP_VERSIONS, sinon le php du PATH)
+set -u
+base="origin/${TMA_BASE_BRANCH:-main}"
+versions="${*:-${TMA_PHP_VERSIONS:-}}"
+files=$( { git diff --name-only --diff-filter=ACMR "$base" -- '*.php'; git ls-files --others --exclude-standard -- '*.php'; } | sort -u)
+
+if [ -z "$files" ]; then
+  echo "Aucun fichier PHP modifié depuis $base."
+  exit 0
+fi
+
+status=0
+for v in ${versions:-default}; do
+  bin=php
+  [ "$v" != default ] && bin="php$v"
+  if ! command -v "$bin" >/dev/null 2>&1; then
+    echo "✗ $bin introuvable"
+    status=1
+    continue
+  fi
+  failed=0
+  for f in $files; do
+    out=$("$bin" -l "$f" 2>&1) || { echo "$out"; failed=1; }
+  done
+  label=$("$bin" -r 'echo PHP_VERSION;')
+  if [ $failed -eq 0 ]; then echo "✓ PHP $label : $(echo "$files" | wc -l | tr -d ' ') fichier(s) sans erreur de syntaxe"; else echo "✗ PHP $label : erreurs ci-dessus"; status=1; fi
+done
+exit $status

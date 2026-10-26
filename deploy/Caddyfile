@@ -1,0 +1,9 @@
+# Caddy gère le certificat HTTPS automatiquement (Let's Encrypt).
+tma.example.com {
+	handle /webhooks/linear {
+		reverse_proxy 127.0.0.1:8787
+	}
+	handle {
+		respond 404
+	}
+}
